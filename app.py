@@ -114,6 +114,10 @@ def logout():
     """Handle logout of user."""
 
     # IMPLEMENT THIS
+    if CURR_USER_KEY in session:
+        do_logout()
+        flash("GoodBye!", "info")
+        return redirect('/')
 
 
 ##############################################################################
