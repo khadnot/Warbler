@@ -2,7 +2,7 @@ import os
 
 from flask import Flask, render_template, request, flash, redirect, session, g
 from flask_debugtoolbar import DebugToolbarExtension
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, InvalidRequestError
 
 from forms import UserAddForm, LoginForm, MessageForm, UserEditForm
 from models import db, connect_db, User, Message
@@ -211,16 +211,47 @@ def stop_following(follow_id):
     return redirect(f"/users/{g.user.id}/following")
 
 
-@app.route('/users/profile', methods=["GET", "POST"])
-def profile():
+@app.route('/users/profile/<int:user_id>', methods=["GET", "POST"])
+def profile(user_id):
     """Update profile for current user."""
 
     form = UserEditForm()
 
-    return render_template('home.html', form=form)
+    user = User.query.get_or_404(user_id)
 
+    if form.validate_on_submit():
 
+        username=form.username.data or user.username
+        email=form.email.data or user.email
+        bio=form.bio.data or user.bio
+        location=form.location.data or "N/A"
+        image_url=form.image_url.data or User.image_url.default.arg
+        header_image_url=form.header_image_url.data or "/static/images/warbler-hero.jpg"
 
+        auth = User.authenticate(g.user.username, form.password.data)
+
+        if auth:
+            try:
+                auth.username = username
+                auth.email = email
+                auth.bio = bio
+                auth.location = location
+                auth.image_url = image_url
+                auth.header_image_url = header_image_url
+
+                db.session.add(auth)
+                db.session.commit()
+
+                return redirect(f"/users/{user.id}")
+
+            except (IntegrityError, InvalidRequestError):
+                db.session.rollback()
+                flash("Incorrect Password", 'danger')
+                return redirect(f"/users/profile/{user.id}")
+        else:
+            flash("Incorrect Password", 'danger')
+            return redirect(f"/users/profile/{user.id}")
+    return render_template('/users/edit.html', form=form)
 
 @app.route('/users/delete', methods=["POST"])
 def delete_user():
@@ -300,8 +331,15 @@ def homepage():
     """
 
     if g.user:
+
+        following_ids = [user.id for user in g.user.following]
+
         messages = (Message
                     .query
+                    .filter(db.or_(
+                        Message.user_id.in_(following_ids),
+                        Message.user_id == g.user.id
+                    ))
                     .order_by(Message.timestamp.desc())
                     .limit(100)
                     .all())
