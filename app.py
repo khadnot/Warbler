@@ -178,7 +178,7 @@ def like_msg(message_id):
     
     except (IntegrityError, InvalidRequestError):
         db.session.rollback()
-        liked_msg = Likes.query.get(message_id) #>>>>>>>>>>>> Need to fix "unlike" 
+        liked_msg = Likes.query.get(message_id)
         db.session.delete(liked_msg)
         db.session.commit()
 
