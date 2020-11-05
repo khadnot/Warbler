@@ -164,7 +164,38 @@ def like_msg(message_id):
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
-    return redirect(request.referrer)
+    try:
+        message = Message.query.get(message_id)
+
+        if message.user_id == g.user.id:
+            return redirect(request.referrer)
+        
+        like = Likes(user_id=g.user.id, message_id=message_id)
+        db.session.add(like)
+        db.session.commit()
+
+        return redirect(request.referrer)
+    
+    except (IntegrityError, InvalidRequestError):
+        db.session.rollback()
+        liked_msg = Likes.query.get(message_id) #>>>>>>>>>>>> Need to fix "unlike" 
+        db.session.delete(liked_msg)
+        db.session.commit()
+
+        return redirect(request.referrer)
+
+@app.route('/users/<int:user_id>/likes')
+def show_user_likes(user_id):
+    """Show list of messages liked by user."""
+
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
+    user = User.query.get_or_404(user_id)
+    likes = [msg.id for msg in user.likes]
+
+    return render_template('/users/likes.html', user=user, likes=likes)
 
 @app.route('/users/<int:user_id>/following')
 def show_following(user_id):
@@ -353,7 +384,9 @@ def homepage():
                     .limit(100)
                     .all())
 
-        return render_template('home.html', messages=messages)
+        likes = [msg.id for msg in g.user.likes]
+
+        return render_template('home.html', messages=messages, likes=likes)
 
     else:
         return render_template('home-anon.html')
