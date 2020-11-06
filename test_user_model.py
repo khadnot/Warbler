@@ -183,7 +183,9 @@ class UserModelTestCase(TestCase):
         db.session.commit()
 
         auth = User.authenticate("testuser", "HASHED_PASSWORD")
-        invalid = User.authenticate("kenbo", "pa$$word123")
+        invalid_user = User.authenticate("kenbo", "HASHED_PASSWORD")
+        invalid_pass = User.authenticate("testuser", "pa$$word123")
 
         self.assertTrue(auth)
-        self.assertFalse(invalid)
+        self.assertFalse(invalid_user)
+        self.assertFalse(invalid_pass)
