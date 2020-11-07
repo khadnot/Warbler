@@ -52,7 +52,7 @@ class MessageViewTestCase(TestCase):
         db.session.commit()
 
     def test_add_message(self):
-        """Can use add a message?"""
+        """Can user add a message?"""
 
         # Since we need to change the session to mimic logging in,
         # we need to use the changing-session trick:
@@ -62,7 +62,7 @@ class MessageViewTestCase(TestCase):
                 sess[CURR_USER_KEY] = self.testuser.id
 
             # Now, that session setting is saved, so we can have
-            # the rest of ours test
+            # the rest of our test
 
             resp = c.post("/messages/new", data={"text": "Hello"})
 
@@ -71,3 +71,21 @@ class MessageViewTestCase(TestCase):
 
             msg = Message.query.one()
             self.assertEqual(msg.text, "Hello")
+
+    def test_delete_message(self):
+        """Can user delete a message?"""
+
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+
+        resp = c.post("/messages/new", data={"text": "Hello again"})
+
+        self.assertEqual(resp.status_code, 302)
+
+        msg = Message.query.one()
+
+        del_msg = c.post(f"/messages/{msg.id}/delete")
+
+        self.assertEqual(del_msg.status_code, 302)
+        self.assertEqual(Message.query.all(), [])
