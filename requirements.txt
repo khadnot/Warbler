@@ -20,13 +20,10 @@ isort==5.6.4
 itsdangerous==0.24
 jedi==0.13.1
 Jinja2==2.10
-<<<<<<< HEAD
 lazy-object-proxy==1.4.3
 MarkupSafe==1.0
 mccabe==0.6.1
-=======
 MarkupSafe==1.1.1
->>>>>>> 4dd496132e9bddc8ec6683d229f572349910d55d
 parso==0.3.1
 pexpect==4.6.0
 pickleshare==0.7.5
